@@ -6,9 +6,7 @@ A static site that shows a card for each song in `songs.tsv`. Clicking a card op
 
 1. Create a new repository on GitHub and upload all of these files (keep the `sheet-music` folder).
 2. In the repo go to **Settings → Pages**, set **Source** to "Deploy from a branch", choose `main` and `/ (root)`, then save.
-3. After a minute the site is live at `https://<your-username>.github.io/<repo-name>/`.
-
-> To preview on your own computer, run `python3 -m http.server` in this folder and open http://localhost:8000. Opening `index.html` by double-clicking it won't load the data, because browsers block reading local files that way.
+3. After a minute the site is live at `https://teferensen.github.io/tch-2026-nye/`.
 
 ## Editing songs
 
