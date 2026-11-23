@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Song Library</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#c2410c">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Songs">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Song Library</h1>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search artist, song, key, genre…" aria-label="Search songs">
+      <select id="sort" aria-label="Sort songs">
+        <option value="song" selected>Song A–Z</option>
+        <option value="list">Spreadsheet order</option>
+        <option value="artist">Artist A–Z</option>
+        <option value="tempo">Tempo (slow → fast)</option>
+        <option value="key">Key</option>
+      </select>
+    </div>
+    <p id="count" class="count"></p>
+  </header>
+
+  <main id="grid" class="grid" aria-live="polite"></main>
+
+  <script src="app.js"></script>
+  <script>
+    (async () => {
+      const grid = document.getElementById('grid');
+      const search = document.getElementById('search');
+      const sort = document.getElementById('sort');
+      const count = document.getElementById('count');
+      let songs;
+      try { songs = await loadSongs(); }
+      catch (e) { grid.innerHTML = `<p class="error">${esc(e.message)}</p>`; return; }
+
+      function render() {
+        const q = search.value.trim().toLowerCase();
+        let list = songs.filter(s =>
+          [s.Artist, s.Song, s.Key, s.Genre, s.Tempo].join(' ').toLowerCase().includes(q));
+        const by = sort.value;
+        if (by === 'song' || by === 'artist' || by === 'key') {
+          const f = { song: 'Song', artist: 'Artist', key: 'Key' }[by];
+          list = [...list].sort((a, b) => (a[f] || '~').localeCompare(b[f] || '~'));
+        } else if (by === 'tempo') {
+          list = [...list].sort((a, b) => (+a.Tempo || 1e9) - (+b.Tempo || 1e9));
+        }
+        count.textContent = `${list.length} of ${songs.length} songs`;
+        grid.innerHTML = list.map(s => `
+          <a class="card" href="song.html?id=${encodeURIComponent(s.id)}">
+            <h2>${esc(s.Song)}</h2>
+            <p class="artist">${esc(s.Artist)}</p>
+            <ul class="meta">
+              <li><span>Key</span>${esc(firstKey(s.Key)) || '—'}</li>
+              <li><span>BPM</span>${esc(s.Tempo) || '—'}</li>
+              <li><span>Meter</span>${esc(s.Meter) || '—'}</li>
+            </ul>
+            ${s.Genre ? `<p class="genres">${genreTags(s.Genre)}</p>` : '<p class="genres muted">No Hooktheory data yet</p>'}
+          </a>`).join('') || '<p class="muted">No songs match.</p>';
+      }
+      search.addEventListener('input', render);
+      sort.addEventListener('change', render);
+      render();
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  </script>
+</body>
+</html>

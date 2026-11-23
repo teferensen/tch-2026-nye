@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Song</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#c2410c">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Songs">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="page" class="song-page">
+    <a class="back" href="index.html">&larr; All songs</a>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    (async () => {
+      const page = document.getElementById('page');
+      const id = new URLSearchParams(location.search).get('id');
+      let songs;
+      try { songs = (await loadSongs()).sort((a, b) => a.Song.localeCompare(b.Song)); }
+      catch (e) { page.insertAdjacentHTML('beforeend', `<p class="error">${esc(e.message)}</p>`); return; }
+
+      const i = songs.findIndex(s => s.id === id);
+      const s = songs[i];
+      if (!s) { page.insertAdjacentHTML('beforeend', '<p class="error">Song not found.</p>'); return; }
+      document.title = `${s.Song} – ${s.Artist}`;
+
+      const empty = '<p class="muted">Not added yet.</p>';
+      const split = v => (v || '').split(';').map(x => x.trim()).filter(Boolean);
+
+      const structure = split(s.Structure);
+      const chords = split(s.Chords);
+      const sheets = split(s['Sheet Music']);
+      const prev = songs[(i - 1 + songs.length) % songs.length];
+      const next = songs[(i + 1) % songs.length];
+
+      page.insertAdjacentHTML('beforeend', `
+        <header class="song-header">
+          <h1>${esc(s.Song)}</h1>
+          <p class="artist">${esc(s.Artist)}</p>
+        </header>
+
+        <section class="stats">
+          <div class="stat"><span>Key</span><strong>${esc(s.Key) || '—'}</strong></div>
+          <div class="stat"><span>Tempo</span><strong>${s.Tempo ? esc(s.Tempo) + ' BPM' : '—'}</strong></div>
+          <div class="stat"><span>Meter</span><strong>${esc(s.Meter) || '—'}</strong></div>
+          <div class="stat wide"><span>Genre</span><strong>${s.Genre ? genreTags(s.Genre) : '—'}</strong></div>
+        </section>
+
+        ${s.Hooktheory
+          ? `<a class="button" href="${esc(s.Hooktheory)}" target="_blank" rel="noopener">View on Hooktheory &rarr;</a>`
+          : '<p class="muted">No Hooktheory page found for this song.</p>'}
+
+        <section class="block">
+          <h2>Song Structure</h2>
+          ${structure.length ? `<ol class="structure">${structure.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : empty}
+        </section>
+
+        <section class="block">
+          <h2>Chord Changes</h2>
+          ${chords.length ? `<dl class="chords">${chords.map(line => {
+              const [label, ...rest] = line.split(':');
+              return rest.length
+                ? `<dt>${esc(label.trim())}</dt><dd>${esc(rest.join(':').trim())}</dd>`
+                : `<dd>${esc(line)}</dd>`;
+            }).join('')}</dl>` : empty}
+        </section>
+
+        <section class="block">
+          <h2>Sheet Music</h2>
+          ${sheets.length ? `<div class="sheets">${sheets.map(src =>
+              `<figure><img src="${esc(src)}" alt="Sheet music snippet for ${esc(s.Song)}" loading="lazy"></figure>`).join('')}</div>` : empty}
+        </section>
+
+        <nav class="pager">
+          <a href="song.html?id=${encodeURIComponent(prev.id)}">&larr; ${esc(prev.Song)}</a>
+          <a href="song.html?id=${encodeURIComponent(next.id)}">${esc(next.Song)} &rarr;</a>
+        </nav>`);
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  </script>
+</body>
+</html>
